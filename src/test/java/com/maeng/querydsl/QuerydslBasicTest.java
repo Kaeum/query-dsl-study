@@ -3,6 +3,7 @@ package com.maeng.querydsl;
 import com.maeng.querydsl.entity.Member;
 import com.maeng.querydsl.entity.QMember;
 import com.maeng.querydsl.entity.Team;
+import com.querydsl.core.QueryResults;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -124,5 +125,33 @@ public class QuerydslBasicTest {
         assertThat(member5.getUsername()).isEqualTo("member5");
         assertThat(member6.getUsername()).isEqualTo("member6");
         assertThat(memberNull.getUsername()).isNull();
+    }
+
+    @Test
+    public void paging1() {
+        List<Member> result = queryFactory
+                .selectFrom(member)
+                .orderBy(member.username.desc())
+                .offset(1)
+                .limit(2)
+                .fetch();
+
+        assertThat(result.size()).isEqualTo(2);
+    }
+
+    @Test
+    public void paging2() {
+        QueryResults<Member> result = queryFactory
+                .selectFrom(member)
+                .orderBy(member.username.desc())
+                .offset(1)
+                .limit(2)
+                .fetchResults(); // count 쿼리가 실행됨. 성능 영향
+
+        assertThat(result.getTotal()).isEqualTo(4);
+        assertThat(result.getOffset()).isEqualTo(1);
+        assertThat(result.getLimit()).isEqualTo(2);
+        assertThat(result.getResults().get(0).getUsername()).isEqualTo("member3");
+        assertThat(result.getResults().get(1).getUsername()).isEqualTo("member2");
     }
 }
