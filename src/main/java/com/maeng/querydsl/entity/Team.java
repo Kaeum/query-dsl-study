@@ -1,6 +1,6 @@
 package com.maeng.querydsl.entity;
 
-import com.maeng.querydsl.Member;
+import com.maeng.querydsl.entity.Member;
 import lombok.*;
 
 import javax.persistence.*;

@@ -1,4 +1,4 @@
-package com.maeng.querydsl;
+package com.maeng.querydsl.entity;
 
 import com.maeng.querydsl.entity.Team;
 import lombok.*;
@@ -8,7 +8,6 @@ import javax.persistence.*;
 
 @Entity
 @Getter
-@Setter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @ToString(of = {"id", "username", "age", "team"})
 public class Member {
