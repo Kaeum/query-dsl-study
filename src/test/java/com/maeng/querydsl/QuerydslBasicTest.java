@@ -2,8 +2,10 @@ package com.maeng.querydsl;
 
 import com.maeng.querydsl.entity.Member;
 import com.maeng.querydsl.entity.QMember;
+import com.maeng.querydsl.entity.QTeam;
 import com.maeng.querydsl.entity.Team;
 import com.querydsl.core.QueryResults;
+import com.querydsl.core.Tuple;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -16,6 +18,7 @@ import javax.persistence.PersistenceContext;
 import java.util.List;
 
 import static com.maeng.querydsl.entity.QMember.*;
+import static com.maeng.querydsl.entity.QTeam.team;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest
@@ -146,12 +149,49 @@ public class QuerydslBasicTest {
                 .orderBy(member.username.desc())
                 .offset(1)
                 .limit(2)
-                .fetchResults(); // count 쿼리가 실행됨. 성능 영향
+                .fetchResults(); // count 쿼리가 실행됨. 성능 영
 
         assertThat(result.getTotal()).isEqualTo(4);
         assertThat(result.getOffset()).isEqualTo(1);
         assertThat(result.getLimit()).isEqualTo(2);
         assertThat(result.getResults().get(0).getUsername()).isEqualTo("member3");
         assertThat(result.getResults().get(1).getUsername()).isEqualTo("member2");
+    }
+
+    @Test
+    public void aggregation() {
+        Tuple tuple = queryFactory
+                .select(member.count(),
+                        member.age.sum(),
+                        member.age.avg(),
+                        member.age.max(),
+                        member.age.min())
+                .from(member)
+                .fetchOne();
+
+        assertThat(tuple.get(member.count())).isEqualTo(4);
+        assertThat(tuple.get(member.age.sum())).isEqualTo(100);
+        assertThat(tuple.get(member.age.avg())).isEqualTo(25);
+        assertThat(tuple.get(member.age.max())).isEqualTo(40);
+        assertThat(tuple.get(member.age.min())).isEqualTo(10);
+    }
+
+    @Test
+    public void groupBy() {
+        List<Tuple> result = queryFactory
+                .select(team.name, member.age.avg())
+                .from(member)
+                .join(member.team, team)
+                .groupBy(team.name)
+                .fetch();
+
+        Tuple teamA = result.get(0);
+        Tuple teamB = result.get(1);
+
+        assertThat(teamA.get(team.name)).isEqualTo("teamA");
+        assertThat(teamA.get(member.age.avg())).isEqualTo(15);
+
+        assertThat(teamB.get(team.name)).isEqualTo("teamB");
+        assertThat(teamB.get(member.age.avg())).isEqualTo(35);
     }
 }
