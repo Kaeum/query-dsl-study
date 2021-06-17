@@ -12,6 +12,8 @@ import org.springframework.transaction.annotation.Transactional;
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
 
+import java.util.List;
+
 import static com.maeng.querydsl.entity.QMember.*;
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -21,6 +23,7 @@ public class QuerydslBasicTest {
 
     @PersistenceContext
     EntityManager em;
+    JPAQueryFactory queryFactory = new JPAQueryFactory(em);
 
     @BeforeEach
     public void before() {
@@ -60,8 +63,6 @@ public class QuerydslBasicTest {
     @Test
     public void findWithQuerydsl() {
         //member1 찾기
-        JPAQueryFactory queryFactory = new JPAQueryFactory(em);
-
         Member findMember = queryFactory
                 .select(member)
                 .from(member)
@@ -70,4 +71,30 @@ public class QuerydslBasicTest {
 
         assertThat(findMember.getUsername()).isEqualTo("member1");
     }
+
+    @Test
+    public void search() {
+        List<Member> result = queryFactory
+                .selectFrom(member)
+                .where(member.username.eq("member1")
+                        .and(member.age.eq(10))
+                )
+                .fetch();
+
+        assertThat(result.size()).isEqualTo(1);
+    }
+
+    @Test
+    public void 검색조건_복수파라미터로_전달() {
+        List<Member> result = queryFactory
+                .selectFrom(member)
+                .where(member.username.eq("member1")
+                        ,member.age.eq(10)
+                )
+                .fetch();
+
+        assertThat(result.size()).isEqualTo(1);
+    }
+
+
 }
