@@ -6,6 +6,7 @@ import com.maeng.querydsl.entity.QTeam;
 import com.maeng.querydsl.entity.Team;
 import com.querydsl.core.QueryResults;
 import com.querydsl.core.Tuple;
+import com.querydsl.jpa.JPAExpressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -21,6 +22,7 @@ import java.util.List;
 
 import static com.maeng.querydsl.entity.QMember.*;
 import static com.maeng.querydsl.entity.QTeam.team;
+import static com.querydsl.jpa.JPAExpressions.*;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest
@@ -294,4 +296,54 @@ public class QuerydslBasicTest {
         boolean loaded = emf.getPersistenceUnitUtil().isLoaded(findMember.getTeam());
         assertThat(loaded).as("페치 조인 적용").isTrue();
     }
+
+    @Test
+    public void subQueryEq() {
+        //com.querydsl.jpa.JPAExpressions 사용
+        QMember subMember = new QMember("subMember");
+
+        List<Member> result = queryFactory
+                .selectFrom(member)
+                .where(member.age.eq(
+                        select(subMember.age.max())
+                                .from(subMember))
+                )
+                .fetch();
+
+        assertThat(result)
+                .extracting("age")
+                .containsExactly(40);
+    }
+
+    @Test
+    public void subQueryGoe() {
+        QMember subMember = new QMember("subMember");
+
+        List<Member> result = queryFactory
+                .selectFrom(member)
+                .where(member.age.goe(
+                        select(subMember.age.avg())
+                                .from(subMember))
+                )
+                .fetch();
+
+        assertThat(result)
+                .extracting("age")
+                .containsExactly(30,40);
+    }
+
+    @Test
+    public void subQueryIn() throws Exception {
+        QMember subMember = new QMember("subMember");
+        List<Member> result = queryFactory
+                .selectFrom(member)
+                .where(member.age.in(
+                        select(subMember.age)
+                        .from(subMember)
+                        .where(subMember.age.gt(10)))
+                )
+                .fetch();
+        assertThat(result).extracting("age").containsExactly(20, 30, 40);
+    }
+
 }
