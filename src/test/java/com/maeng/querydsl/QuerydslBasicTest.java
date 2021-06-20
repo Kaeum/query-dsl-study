@@ -1,11 +1,16 @@
 package com.maeng.querydsl;
 
+import com.maeng.querydsl.dto.MemberDto;
+import com.maeng.querydsl.dto.QMemberDto;
+import com.maeng.querydsl.dto.UserDto;
 import com.maeng.querydsl.entity.Member;
 import com.maeng.querydsl.entity.QMember;
 import com.maeng.querydsl.entity.QTeam;
 import com.maeng.querydsl.entity.Team;
 import com.querydsl.core.QueryResults;
 import com.querydsl.core.Tuple;
+import com.querydsl.core.types.ExpressionUtils;
+import com.querydsl.core.types.Projections;
 import com.querydsl.jpa.JPAExpressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import org.junit.jupiter.api.BeforeEach;
@@ -346,4 +351,108 @@ public class QuerydslBasicTest {
         assertThat(result).extracting("age").containsExactly(20, 30, 40);
     }
 
+    @Test
+    public void projections_basic() {
+        List<String> result = queryFactory.select(member.username)
+                .from(member)
+                .fetch();
+
+
+
+        List<Tuple> result2 = queryFactory
+                .select(member.username, member.age)
+                .from(member)
+                .fetch();
+
+        System.out.println("result = " + result);
+        System.out.println("result2 = " + result2);
+    }
+
+    @Test
+    public void findMemberDto_jpa() {
+        List<MemberDto> result = em.createQuery(
+                "select new com.maeng.querydsl.dto.MemberDto(m.username, m.age) " +
+                        "from Member m"
+                , MemberDto.class
+        ).getResultList();
+    }
+
+    @Test
+    public void findMemberDto_querydsl() {
+        //property (using setter)
+        List<MemberDto> propertyResult = queryFactory
+                .select(Projections.bean(MemberDto.class, member.username, member.age))
+                .from(member)
+                .fetch();
+
+        //field - 필드 이름으로 찾음.
+        List<MemberDto> fieldResult = queryFactory
+                .select(Projections.fields(MemberDto.class, member.username, member.age))
+                .from(member)
+                .fetch();
+
+        //생성자 사용 - 파라미터 타입으로 찾음.
+        List<MemberDto> constructorResult = queryFactory
+                .select(Projections.constructor(MemberDto.class, member.username, member.age))
+                .from(member)
+                .fetch();
+    }
+
+    @Test
+    public void findUserDto_querydsl() {
+        // 다른 Dto로 조회할 경우. MemberDto는 username,age 인 반면 UserDto는 name,age인 경우.
+
+        //field - as() 사용하여 username -> name.
+        queryFactory
+                .select(Projections.fields(UserDto.class, member.username.as("name"), member.age))
+                .from(member)
+                .fetch();
+
+        //생성자의 경우 타입으로 찾기 때문에 문제 없음.
+        queryFactory
+                .select(Projections.constructor(UserDto.class, member.username, member.age))
+                .from(member)
+                .fetch();
+
+        // scala query를 사용하는 경우 - ExpressionUtils.as() 사용해야함
+        QMember subMember = new QMember("subMember");
+
+        queryFactory
+                .select(
+                        Projections.fields(
+                            UserDto.class
+                            , member.username.as("name")
+                            , ExpressionUtils.as(
+                                    JPAExpressions
+                                        .select(subMember.age.max())
+                                        .from(subMember), "age")
+                        )
+                )
+                .from(member)
+                .fetch();
+    }
+
+    @Test
+    public void findQMemberDto_Annotation() {
+        // 1. MemberDto의 생성자에 @QueryProjection 추가
+        // 2. compileQuerydsl 수행
+
+        List<MemberDto> result = queryFactory
+                .select(new QMemberDto(member.username, member.age))
+                .from(member)
+                .fetch();
+
+        //compile 시점에 에러를 잡을 수 있고, 코드가 간결해지는 장점
+        //But, View Layer까지 전달되는 MemberDto가 인프라스트럭쳐(QueryDSL)와 강하게 결합되는 단점도 존재함.
+    }
+
+    @Test
+    public void distinct() {
+        queryFactory
+                .select(member.username).distinct()
+                .from(member)
+                .fetch();
+
+        // JPQL의 distinct와 동일하게 동작함.
+    }
 }
