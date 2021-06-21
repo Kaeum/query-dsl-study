@@ -516,4 +516,22 @@ public class QuerydslBasicTest {
 
         return member.age.eq(ageCondition);
     }
+
+    @Test
+    public void bulk() {
+        long updateCount = queryFactory
+                .update(member)
+                .set(member.username, "비회원")
+                .where(member.age.lt(28))
+                .execute();
+
+        long deleteCount = queryFactory
+                .delete(member)
+                .where(member.age.gt(18))
+                .execute();
+
+        // DB로 쿼리를 바로 날리기 때문에 영속성 컨텍스트와 싱크가 안 맞을 수 있음.
+        em.flush();
+        em.clear();
+    }
 }
