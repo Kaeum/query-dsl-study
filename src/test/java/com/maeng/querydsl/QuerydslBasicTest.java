@@ -5,18 +5,21 @@ import com.maeng.querydsl.dto.QMemberDto;
 import com.maeng.querydsl.dto.UserDto;
 import com.maeng.querydsl.entity.Member;
 import com.maeng.querydsl.entity.QMember;
-import com.maeng.querydsl.entity.QTeam;
 import com.maeng.querydsl.entity.Team;
+import com.querydsl.core.BooleanBuilder;
 import com.querydsl.core.QueryResults;
 import com.querydsl.core.Tuple;
 import com.querydsl.core.types.ExpressionUtils;
+import com.querydsl.core.types.Predicate;
 import com.querydsl.core.types.Projections;
+import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.jpa.JPAExpressions;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.ObjectUtils;
 
 import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;
@@ -454,5 +457,63 @@ public class QuerydslBasicTest {
                 .fetch();
 
         // JPQL의 distinct와 동일하게 동작함.
+    }
+
+    @Test
+    public void dynamic_query_BooleanBuilder() {
+        String usernameParam = "member1";
+        Integer ageParam = 10;
+
+        List<Member> result = searchMember1(usernameParam, ageParam);
+        assertThat(result.size()).isEqualTo(1);
+    }
+
+    private List<Member> searchMember1(String usernameCondition, Integer ageCondition) {
+        BooleanBuilder builder = new BooleanBuilder();
+
+        if(!ObjectUtils.isEmpty(usernameCondition)) {
+            builder.and(member.username.eq(usernameCondition));
+        }
+
+        if(!ObjectUtils.isEmpty(ageCondition)) {
+            builder.and(member.age.eq(ageCondition));
+        }
+
+        return queryFactory
+                .selectFrom(member)
+                .where(builder)
+                .fetch();
+    }
+
+    @Test
+    public void dynamic_query_WhereParam() {
+        String usernameParam = "member1";
+        Integer ageParam = 10;
+
+        List<Member> result = searchMember2(usernameParam, ageParam);
+        assertThat(result.size()).isEqualTo(1);
+    }
+
+    private List<Member> searchMember2(String usernameCondition, Integer ageCondition) {
+        return queryFactory
+                .selectFrom(member)
+                .where(usernameEq(usernameCondition), ageEq(ageCondition)) // where 절 안의 결과가 null일 경우에는 무시함.
+                .fetch();
+    }
+
+    private BooleanExpression usernameEq(String usernameCondition) {
+        if(ObjectUtils.isEmpty(usernameCondition)) {
+            return null;
+        }
+
+        return member.username.eq(usernameCondition);
+    }
+
+    private BooleanExpression ageEq(Integer ageCondition) {
+        if(ObjectUtils.isEmpty(ageCondition)) {
+            return null;
+        }
+
+        return member.age.eq(ageCondition);
     }
 }
