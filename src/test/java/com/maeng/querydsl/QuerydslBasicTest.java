@@ -1,8 +1,6 @@
 package com.maeng.querydsl;
 
-import com.maeng.querydsl.dto.MemberDto;
-import com.maeng.querydsl.dto.QMemberDto;
-import com.maeng.querydsl.dto.UserDto;
+import com.maeng.querydsl.dto.*;
 import com.maeng.querydsl.entity.Member;
 import com.maeng.querydsl.entity.QMember;
 import com.maeng.querydsl.entity.Team;
@@ -20,6 +18,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.ObjectUtils;
+import org.springframework.util.StringUtils;
 
 import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;
@@ -534,4 +533,6 @@ public class QuerydslBasicTest {
         em.flush();
         em.clear();
     }
+
+
 }
